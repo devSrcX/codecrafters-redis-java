@@ -40,11 +40,12 @@ public class Main {
             System.out.println("Received line: " + line);
             while (line != null)  {
                 System.out.println("Received line: " + line);
-                line = bufferedReader.readLine();
                 
                 if(line.contains("PING")){
                     outputStream.write("+PONG\r\n".getBytes());
                 }
+
+                line = bufferedReader.readLine();
             }
         } catch (IOException e) {
             System.out.println("Client error: " + e.getMessage());
