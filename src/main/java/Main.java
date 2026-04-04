@@ -42,6 +42,7 @@ public class Main {
             while (line != null) {
                 System.out.println("Received line: " + line);
                 if (line.startsWith("*")) {
+                    System.out.println("Received array length line: " + line);
                     int arrayLength = Integer.parseInt(line.substring(1));
                     String command = bufferedReader.readLine();
                     System.out.println("Received command: " + command);
