@@ -13,7 +13,7 @@ public class Main {
     private static final Logger log = LoggerFactory.getLogger(Main.class);
     private static final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
     public static void main(String[] args) throws IOException{
-        int port = 6379;
+        int port = 6380;
         var commandHandler = new RedisCommandHandler();
         log.info("loading custom redis server");
         try (var serverSocketChannel = ServerSocketChannel.open()){
