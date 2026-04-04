@@ -7,11 +7,14 @@ import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Main {
 
     public static void main(String[] args) {
         int port = 6379;
+        ExecutorService executorService = Executors.newCachedThreadPool();
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             serverSocket.setReuseAddress(true);
             while (true) {
@@ -21,9 +24,9 @@ public class Main {
 
                 System.out.println("Client connected: " + clientSocket.getInetAddress());
 
-                CompletableFuture.runAsync(() -> {
+                CompletableFuture.runAsync(executorService.submit(() -> {
                     handleMulptipleClient(clientSocket);
-                });
+                }));
 
             }
         } catch (IOException e) {
@@ -43,6 +46,7 @@ public class Main {
                 
                 if(line.contains("PING")){
                     outputStream.write("+PONG\r\n".getBytes());
+                    outputStream.flush();
                 }
 
                 line = bufferedReader.readLine();
