@@ -42,7 +42,6 @@ public class Main {
             while (line != null) {
                 System.out.println("Received line: " + line);
                 if (line.startsWith("*")) {
-                    System.out.println("Received array length line: " + line);
                     int arrayLength = Integer.parseInt(line.substring(1));
                     String command = bufferedReader.readLine();
                     System.out.println("Received command: " + command);
@@ -60,7 +59,19 @@ public class Main {
                         System.out.println("Received line: " + arg);
                         outputStream.write(("$" + arg.length() + "\r\n" + arg + "\r\n").getBytes());
                         outputStream.flush();
+                    } else if (commandStr.equalsIgnoreCase("SET")) {
+                        String key = bufferedReader.readLine();
+                        String value = bufferedReader.readLine();
+                        System.out.println("Received SET command with key: " + key + " and value: " + value);
+                        outputStream.write("+OK\r\n".getBytes());
+                        outputStream.flush();
+                    } else if (commandStr.equalsIgnoreCase("GET")) {
+                        String key = bufferedReader.readLine();
+                        System.out.println("Received GET command with key: " + key);
+                        outputStream.write("$-1\r\n".getBytes());
+                        outputStream.flush();
                     }
+
                 } else {
                     if (line.contains("PING")) {
                         outputStream.write("+PONG\r\n".getBytes());
