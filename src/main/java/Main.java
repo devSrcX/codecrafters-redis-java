@@ -66,8 +66,8 @@ public class Main {
                         outputStream.flush();
                     }
                 }
+                line = bufferedReader.readLine();
             }
-            line = bufferedReader.readLine();
         } catch (IOException e) {
             System.out.println("Client error: " + e.getMessage());
         } finally {
