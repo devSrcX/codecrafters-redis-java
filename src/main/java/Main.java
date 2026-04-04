@@ -6,7 +6,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -24,9 +23,9 @@ public class Main {
 
                 System.out.println("Client connected: " + clientSocket.getInetAddress());
 
-                CompletableFuture.runAsync(executorService.submit(() -> {
+                executorService.submit(() -> {
                     handleMulptipleClient(clientSocket);
-                }));
+                });
 
             }
         } catch (IOException e) {
