@@ -23,12 +23,9 @@ public class Main {
 
                 System.out.println("Client connected: " + clientSocket.getInetAddress());
 
-                new Thread(() -> {
+                executorService.submit(() -> {
                     handleMulptipleClient(clientSocket);
-                }).start();
-                // executorService.submit(() -> {
-                //     handleMulptipleClient(clientSocket);
-                // });
+                });
 
             }
         } catch (IOException e) {
@@ -42,17 +39,35 @@ public class Main {
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
 
             String line = bufferedReader.readLine();
-            System.out.println("Received line: " + line);
-            while (line != null)  {
+            while (line != null) {
                 System.out.println("Received line: " + line);
-                
-                if(line.contains("PING")){
-                    outputStream.write("+PONG\r\n".getBytes());
-                    outputStream.flush();
-                }
+                if (line.startsWith("*")) {
+                    int arrayLength = Integer.parseInt(line.substring(1));
+                    String command = bufferedReader.readLine();
+                    System.out.println("Received command: " + command);
+                    int commandLength = Integer.parseInt(command.substring(1));
+                    String commandStr = bufferedReader.readLine();
+                    System.out.println("Received command name: " + commandStr);
 
-                line = bufferedReader.readLine();
+                    if (commandStr.equalsIgnoreCase("PING")) {
+                        outputStream.write("+PONG\r\n".getBytes());
+                        outputStream.flush();
+                    } else if (commandStr.equalsIgnoreCase("ECHO")) {
+                        String argLenLine = bufferedReader.readLine();
+                        System.out.println("Received line: " + argLenLine);
+                        String arg = bufferedReader.readLine();
+                        System.out.println("Received line: " + arg);
+                        outputStream.write(("$" + arg.length() + "\r\n" + arg + "\r\n").getBytes());
+                        outputStream.flush();
+                    }
+                } else {
+                    if (line.contains("PING")) {
+                        outputStream.write("+PONG\r\n".getBytes());
+                        outputStream.flush();
+                    }
+                }
             }
+            line = bufferedReader.readLine();
         } catch (IOException e) {
             System.out.println("Client error: " + e.getMessage());
         } finally {
