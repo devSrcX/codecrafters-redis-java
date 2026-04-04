@@ -23,9 +23,12 @@ public class Main {
 
                 System.out.println("Client connected: " + clientSocket.getInetAddress());
 
-                executorService.submit(() -> {
+                new Thread(() -> {
                     handleMulptipleClient(clientSocket);
-                });
+                }).start();
+                // executorService.submit(() -> {
+                //     handleMulptipleClient(clientSocket);
+                // });
 
             }
         } catch (IOException e) {
