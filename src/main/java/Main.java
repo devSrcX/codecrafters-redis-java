@@ -1,93 +1,54 @@
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.ByteBuffer;
+import java.nio.channels.ClosedChannelException;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Supplier;
 
 public class Main {
-
-    public static void main(String[] args) {
+    private static final Logger log = LoggerFactory.getLogger(Main.class);
+    private static final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+    public static void main(String[] args) throws IOException{
         int port = 6379;
-        ExecutorService executorService = Executors.newCachedThreadPool();
-        try (ServerSocket serverSocket = new ServerSocket(port)) {
-            serverSocket.setReuseAddress(true);
-            while (true) {
-                System.out.println("Waiting for clients on port " + port + "...");
-
-                Socket clientSocket = serverSocket.accept();
-
-                System.out.println("Client connected: " + clientSocket.getInetAddress());
-
-                executorService.submit(() -> {
-                    handleMulptipleClient(clientSocket);
-                });
-
+        var commandHandler = new RedisCommandHandler();
+        log.info("loading custom redis server");
+        try (var serverSocketChannel = ServerSocketChannel.open()){
+            serverSocketChannel.bind(new InetSocketAddress("localhost",port));
+            log.info("server started");
+            while (true){
+                var clientSocket = serverSocketChannel.accept();
+                executor.submit(()->handlePetition(clientSocket,commandHandler));
             }
         } catch (IOException e) {
-            System.out.println("Server error: " + e.getMessage());
+            log.error("IOException:",e);
+            throw e;
         }
     }
 
-    private static void handleMulptipleClient(Socket clientSocket) {
-        try (InputStream inputStream = clientSocket.getInputStream(); OutputStream outputStream = clientSocket.getOutputStream()) {
-
-            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
-
-            String line = bufferedReader.readLine();
-            while (line != null) {
-                System.out.println("Received line: " + line);
-                if (line.startsWith("*")) {
-                    int arrayLength = Integer.parseInt(line.substring(1));
-                    String command = bufferedReader.readLine();
-                    System.out.println("Received command: " + command);
-                    int commandLength = Integer.parseInt(command.substring(1));
-                    String commandStr = bufferedReader.readLine();
-                    System.out.println("Received command name: " + commandStr);
-
-                    if (commandStr.equalsIgnoreCase("PING")) {
-                        outputStream.write("+PONG\r\n".getBytes());
-                        outputStream.flush();
-                    } else if (commandStr.equalsIgnoreCase("ECHO")) {
-                        String argLenLine = bufferedReader.readLine();
-                        System.out.println("Received line: " + argLenLine);
-                        String arg = bufferedReader.readLine();
-                        System.out.println("Received line: " + arg);
-                        outputStream.write(("$" + arg.length() + "\r\n" + arg + "\r\n").getBytes());
-                        outputStream.flush();
-                    } else if (commandStr.equalsIgnoreCase("SET")) {
-                        String key = bufferedReader.readLine();
-                        String value = bufferedReader.readLine();
-                        System.out.println("Received SET command with key: " + key + " and value: " + value);
-                        outputStream.write("+OK\r\n".getBytes());
-                        outputStream.flush();
-                    } else if (commandStr.equalsIgnoreCase("GET")) {
-                        String key = bufferedReader.readLine();
-                        System.out.println("Received GET command with key: " + key);
-                        outputStream.write("$-1\r\n".getBytes());
-                        outputStream.flush();
-                    }
-
-                } else {
-                    if (line.contains("PING")) {
-                        outputStream.write("+PONG\r\n".getBytes());
-                        outputStream.flush();
-                    }
+    private static void handlePetition(SocketChannel clientSocketChannel,RedisCommandHandler handler) {
+        try(clientSocketChannel){
+            var byteBuffer = ByteBuffer.allocate(1024);
+            while(clientSocketChannel.read(byteBuffer) > 0){
+                byteBuffer.flip();
+                log.info("handling petition for ip: {}",clientSocketChannel.getRemoteAddress());
+                if(clientSocketChannel.isOpen()){
+                    var result = handler.handle(new String(byteBuffer.array(),0,byteBuffer.limit()));
+                    clientSocketChannel.write(ByteBuffer.wrap(result.getBytes()));
                 }
-                line = bufferedReader.readLine();
             }
-        } catch (IOException e) {
-            System.out.println("Client error: " + e.getMessage());
-        } finally {
-            try {
-                clientSocket.close();
-            } catch (IOException e) {
-                System.out.println("Error closing client socket: " + e.getMessage());
-            }
+        } catch (IOException exception){
+            log.error("an error occurred while handling petition");
         }
     }
 }
