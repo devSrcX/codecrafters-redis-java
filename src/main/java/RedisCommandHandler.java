@@ -39,7 +39,7 @@ public class RedisCommandHandler {
                 log.info("Executing: {} with optionalParameter: {}",commandName,optionalParameter);
                 yield switch (optionalParameter) {
                     case "EX" -> {
-                        var seconds = Integer.parseInt(splitCommand[9]);
+                        var seconds = Integer.parseInt(splitCommand[10]);
                         var expirationTimeMs = System.currentTimeMillis() + (seconds * 1000L);
                         log.info("setting key: {} with expiration of {} seconds",splitCommand[4],seconds);
                         var value = String.format(RESPONSE_STRING_TEMPLATE,splitCommand[6].length(),splitCommand[6]);
@@ -47,7 +47,7 @@ public class RedisCommandHandler {
                         yield "+OK\r\n";
                     }
                     case "PX" -> {
-                        var milliseconds = Integer.parseInt(splitCommand[9]);
+                        var milliseconds = Integer.parseInt(splitCommand[10]);
                         var expirationTimeMs = System.currentTimeMillis() + milliseconds;
                         log.info("setting key: {} with expiration of {} milliseconds",splitCommand[4],milliseconds);
                         var value = String.format(RESPONSE_STRING_TEMPLATE,splitCommand[6].length(),splitCommand[6]);
