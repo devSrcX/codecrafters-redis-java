@@ -1,5 +1,7 @@
 
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -10,6 +12,7 @@ public class RedisCommandHandler {
     private static final String RESPONSE_STRING_TEMPLATE = "$%d\r\n%s\r\n";
     private static final Logger log = LoggerFactory.getLogger(RedisCommandHandler.class);
     private final Map<String,CachedValue> cache = new ConcurrentHashMap<>();
+    private final Map<String,List<String>> lists = new ConcurrentHashMap<>();
 
     public String handle(String redisCommandLiteral) {
         var splitedString = redisCommandLiteral.split("\r\n");
@@ -62,6 +65,17 @@ public class RedisCommandHandler {
                 };
             }
             case "PING" -> "+PONG\r\n";
+            case "RPUSH" -> {
+                var key = splitCommand[4];
+                var cachedList = lists.computeIfAbsent(key, k -> new ArrayList<>());
+                
+                for (int i = 6; i < splitCommand.length; i += 2) {
+                    if (!splitCommand[i].isEmpty()) {
+                        cachedList.add(splitCommand[i]);
+                    }
+                }
+                yield ":" + cachedList.size() + "\r\n";
+            }
             default -> null;
         };
     }
