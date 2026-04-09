@@ -39,6 +39,7 @@ public class Main {
                     var result = handler.handle(new String(byteBuffer.array(),0,byteBuffer.limit()));
                     clientSocketChannel.write(ByteBuffer.wrap(result.getBytes()));
                 }
+                byteBuffer.clear();
             }
         } catch (IOException exception){
             log.error("an error occurred while handling petition");
