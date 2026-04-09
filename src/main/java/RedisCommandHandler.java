@@ -18,7 +18,7 @@ public class RedisCommandHandler {
         var splitedString = redisCommandLiteral.split("\r\n");
         var commandName = splitedString[2].toUpperCase();
         var command = new Command(commandName,getPayload(commandName,splitedString));
-        log.info("executing command: {}, payload: {}, raw value: {}",
+        log.info("executed command: {}, payload: {}, raw value: {}",
                 command.name(),
                 command.payload(),
                 redisCommandLiteral.replace("\r\n","\\r\\n")
