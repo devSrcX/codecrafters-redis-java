@@ -36,6 +36,7 @@ public class RedisCommandHandler {
             }
             case "SET" -> {
                 var optionalParameter = splitCommand.length > 10 ? splitCommand[8] : "";
+                log.info("Executing: {} with optionalParameter: {}",commandName,optionalParameter);
                 yield switch (optionalParameter) {
                     case "EX" -> {
                         var seconds = Integer.parseInt(splitCommand[9]);
