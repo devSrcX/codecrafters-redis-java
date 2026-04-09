@@ -1,15 +1,15 @@
 
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RedisCommandHandler {
     private static final String RESPONSE_STRING_TEMPLATE = "$%d\r\n%s\r\n";
     private static final Logger log = LoggerFactory.getLogger(RedisCommandHandler.class);
-    private final Map<String,String> cache = new ConcurrentHashMap<>();
+    private final Map<String,CachedValue> cache = new ConcurrentHashMap<>();
 
     public String handle(String redisCommandLiteral) {
         var splitedString = redisCommandLiteral.split("\r\n");
@@ -26,11 +26,39 @@ public class RedisCommandHandler {
     private String getPayload(String commandName,String[] splitCommand){
         return switch(commandName){
             case "ECHO" -> String.format(RESPONSE_STRING_TEMPLATE,splitCommand[4].length(),splitCommand[4]);
-            case "GET" -> cache.getOrDefault(splitCommand[4],"$-1\r\n");
+            case "GET" -> {
+                var cachedValue = cache.get(splitCommand[4]);
+                if (cachedValue == null || cachedValue.isExpired()) {
+                    cache.remove(splitCommand[4]);
+                    yield "$-1\r\n";
+                }
+                yield cachedValue.value();
+            }
             case "SET" -> {
-                var setCommandResponse= String.format(RESPONSE_STRING_TEMPLATE,splitCommand[6].length(),splitCommand[6]);
-                cache.put(splitCommand[4],setCommandResponse);
-                yield "+OK\r\n";
+                var optionalParameter = splitCommand.length > 10 ? splitCommand[8] : "";
+                yield switch (optionalParameter) {
+                    case "EX" -> {
+                        var seconds = Integer.parseInt(splitCommand[9]);
+                        var expirationTimeMs = System.currentTimeMillis() + (seconds * 1000L);
+                        log.info("setting key: {} with expiration of {} seconds",splitCommand[4],seconds);
+                        var value = String.format(RESPONSE_STRING_TEMPLATE,splitCommand[6].length(),splitCommand[6]);
+                        cache.put(splitCommand[4], new CachedValue(value, expirationTimeMs));
+                        yield "+OK\r\n";
+                    }
+                    case "PX" -> {
+                        var milliseconds = Integer.parseInt(splitCommand[9]);
+                        var expirationTimeMs = System.currentTimeMillis() + milliseconds;
+                        log.info("setting key: {} with expiration of {} milliseconds",splitCommand[4],milliseconds);
+                        var value = String.format(RESPONSE_STRING_TEMPLATE,splitCommand[6].length(),splitCommand[6]);
+                        cache.put(splitCommand[4], new CachedValue(value, expirationTimeMs));
+                        yield "+OK\r\n";
+                    }
+                    default -> {
+                        var setCommandResponse= String.format(RESPONSE_STRING_TEMPLATE,splitCommand[6].length(),splitCommand[6]);
+                        cache.put(splitCommand[4], new CachedValue(setCommandResponse, -1));
+                        yield "+OK\r\n";
+                    }
+                };
             }
             case "PING" -> "+PONG\r\n";
             default -> null;
