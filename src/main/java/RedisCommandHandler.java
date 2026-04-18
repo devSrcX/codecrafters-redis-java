@@ -181,9 +181,6 @@ public class RedisCommandHandler {
                         Thread.currentThread().interrupt();
                     }
                 }
-                
-                // Timeout reached, return null
-                yield "$-1\r\n";
             }
             default ->
                 null;
