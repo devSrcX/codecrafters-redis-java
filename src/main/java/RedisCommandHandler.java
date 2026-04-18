@@ -134,9 +134,26 @@ public class RedisCommandHandler {
                 if (cachedList == null || cachedList.isEmpty()) {
                     yield "$-1\r\n";
                 }
-                var value = cachedList.remove(0);
-                log.info("Removed value: {} from list with key: {}", value, key);
-                yield String.format(RESPONSE_STRING_TEMPLATE, value.length(), value);
+
+                var args = splitCommand.length > 6 ? splitCommand[6] : "1";
+                var countToPop = Integer.parseInt(args);
+                if (countToPop <= 0) {
+                    yield "$-1\r\n";
+                } else if (countToPop == 1) {
+                    var value = cachedList.remove(0);
+                    log.info("Removed value: {} from list with key: {}", value, key);
+                    yield String.format(RESPONSE_STRING_TEMPLATE, value.length(), value);
+                } else {
+                    countToPop = Math.min(countToPop, cachedList.size());
+                    var responseBuilder = new StringBuilder();
+                    responseBuilder.append("*").append(countToPop).append("\r\n");
+                    for (int i = 0; i < countToPop; i++) {
+                        var value = cachedList.remove(0);
+                        log.info("Removed value: {} from list with key: {}", value, key);
+                        responseBuilder.append(String.format(RESPONSE_STRING_TEMPLATE, value.length(), value));
+                    }
+                    yield responseBuilder.toString();
+                }
             }
             default ->
                 null;
