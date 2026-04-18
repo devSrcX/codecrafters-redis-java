@@ -13,6 +13,7 @@ public class RedisCommandHandler {
     private static final Logger log = LoggerFactory.getLogger(RedisCommandHandler.class);
     private final Map<String, CachedValue> cache = new ConcurrentHashMap<>();
     private final Map<String, List<String>> lists = new ConcurrentHashMap<>();
+    private final Map<String, Object> listLocks = new ConcurrentHashMap<>();
 
     public String handle(String redisCommandLiteral) {
         var splitedString = redisCommandLiteral.split("\r\n");
@@ -70,12 +71,16 @@ public class RedisCommandHandler {
             case "RPUSH" -> {
                 var key = splitCommand[4];
                 var cachedList = lists.computeIfAbsent(key, k -> new ArrayList<>());
+                var lock = listLocks.computeIfAbsent(key, k -> new Object());
                 log.info("Adding values to list with key: {}", key);
-                for (int i = 6; i < splitCommand.length; i += 2) {
-                    if (!splitCommand[i].isEmpty()) {
-                        cachedList.add(splitCommand[i]);
-                        log.info("Added value: {} to list with key: {}", splitCommand[i], key);
+                synchronized (lock) {
+                    for (int i = 6; i < splitCommand.length; i += 2) {
+                        if (!splitCommand[i].isEmpty()) {
+                            cachedList.add(splitCommand[i]);
+                            log.info("Added value: {} to list with key: {}", splitCommand[i], key);
+                        }
                     }
+                    lock.notifyAll();  // Notify all waiting BLPOP threads
                 }
                 yield ":" + cachedList.size() + "\r\n";
             }
@@ -111,12 +116,16 @@ public class RedisCommandHandler {
             case "LPUSH" -> {
                 var key = splitCommand[4];
                 var cachedList = lists.computeIfAbsent(key, k -> new ArrayList<>());
+                var lock = listLocks.computeIfAbsent(key, k -> new Object());
                 log.info("Adding values to list with key: {}", key);
-                for (int i = 6; i < splitCommand.length; i += 2) {
-                    if (!splitCommand[i].isEmpty()) {
-                        cachedList.add(0, splitCommand[i]);
-                        log.info("Added value: {} to list with key: {}", splitCommand[i], key);
+                synchronized (lock) {
+                    for (int i = 6; i < splitCommand.length; i += 2) {
+                        if (!splitCommand[i].isEmpty()) {
+                            cachedList.add(0, splitCommand[i]);
+                            log.info("Added value: {} to list with key: {}", splitCommand[i], key);
+                        }
                     }
+                    lock.notifyAll();  // Notify all waiting BLPOP threads
                 }
                 yield ":" + cachedList.size() + "\r\n";
             }
@@ -157,17 +166,31 @@ public class RedisCommandHandler {
             }
             case "BLPOP" -> {
                 var key = splitCommand[4];
-
                 var blockTimeoutSeconds = Double.parseDouble(splitCommand[6]);
-                var deadline = System.currentTimeMillis() + (long)(blockTimeoutSeconds * 1000);
+                var timeoutMs = (long)(blockTimeoutSeconds * 1000);
 
                 log.info("Blocking LPOP on key: {} with timeout: {} seconds", key, blockTimeoutSeconds);
-            
-                while (System.currentTimeMillis() < deadline) {
-                    log.info("inside while loop");
-                    var cachedList = lists.get(key);
-                    if (cachedList != null && !cachedList.isEmpty()) {
-                        log.info("inside if block");
+                
+                var cachedList = lists.computeIfAbsent(key, k -> new ArrayList<>());
+                var lock = listLocks.computeIfAbsent(key, k -> new Object());
+                
+                synchronized (lock) {
+                    // Wait until timeout or data arrives
+                    while (cachedList.isEmpty()) {
+                        try {
+                            lock.wait(timeoutMs);  // Block this thread until notified or timeout
+                            if (cachedList.isEmpty()) {
+                                // Timeout reached with no data
+                                yield "*-1\r\n";
+                            }
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            yield "*-1\r\n";
+                        }
+                    }
+                    
+                    // Data is available, pop and return
+                    if (!cachedList.isEmpty()) {
                         var value = cachedList.remove(0);
                         log.info("BLPOP removed value: {} from list with key: {}", value, key);
                         
@@ -176,12 +199,6 @@ public class RedisCommandHandler {
                         responseBuilder.append("$").append(key.length()).append("\r\n").append(key).append("\r\n");
                         responseBuilder.append("$").append(value.length()).append("\r\n").append(value).append("\r\n");
                         yield responseBuilder.toString();
-                    }
-                    
-                    try {
-                        Thread.sleep(100);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
                     }
                 }
                 yield "*-1\r\n";
