@@ -108,6 +108,18 @@ public class RedisCommandHandler {
                 }
                 yield responseBuilder.toString();
             }
+            case "LPUSH" -> {
+                var key = splitCommand[4];
+                var cachedList = lists.computeIfAbsent(key, k -> new ArrayList<>());
+                log.info("Adding values to list with key: {}", key);
+                for (int i = 6; i < splitCommand.length; i += 2) {
+                    if (!splitCommand[i].isEmpty()) {
+                        cachedList.add(0, splitCommand[i]);
+                        log.info("Added value: {} to list with key: {}", splitCommand[i], key);
+                    }
+                }
+                yield ":" + cachedList.size() + "\r\n";
+            }
             default ->
                 null;
         };
