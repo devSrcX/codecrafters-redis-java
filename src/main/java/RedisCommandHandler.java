@@ -173,13 +173,15 @@ public class RedisCommandHandler {
                         responseBuilder.append("$").append(key.length()).append("\r\n").append(key).append("\r\n");
                         responseBuilder.append("$").append(value.length()).append("\r\n").append(value).append("\r\n");
                         yield responseBuilder.toString();
+                    } else {
+                        yield "*-1\r\n";
                     }
                     
-                    try {
-                        Thread.sleep(100);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
+                    // try {
+                    //     Thread.sleep(100);
+                    // } catch (InterruptedException e) {
+                    //     Thread.currentThread().interrupt();
+                    // }
                 }
                 yield "$-1\r\n";
             }
