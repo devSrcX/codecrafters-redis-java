@@ -158,8 +158,8 @@ public class RedisCommandHandler {
             case "BLPOP" -> {
                 var key = splitCommand[4];
 
-                var blockTimeoutSeconds = Integer.parseInt(splitCommand[6]);
-                var deadline = System.currentTimeMillis() + (blockTimeoutSeconds * 1000L);
+                var blockTimeoutSeconds = Double.parseDouble(splitCommand[6]);
+                var deadline = System.currentTimeMillis() + (long)(blockTimeoutSeconds * 1000);
 
                 log.info("Blocking LPOP on key: {} with timeout: {} seconds", key, blockTimeoutSeconds);
             
