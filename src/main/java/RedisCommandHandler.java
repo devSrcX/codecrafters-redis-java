@@ -162,13 +162,12 @@ public class RedisCommandHandler {
 
                 log.info("Blocking LPOP on key: {} with timeout: {} seconds", key, blockTimeoutSeconds);
             
-                while (System.currentTimeMillis() < deadline) {
+                while (true) {
                     var cachedList = lists.get(key);
                     if (cachedList != null && !cachedList.isEmpty()) {
                         var value = cachedList.remove(0);
                         log.info("BLPOP removed value: {} from list with key: {}", value, key);
                         
-                        // Return as array: [key, value]
                         var responseBuilder = new StringBuilder();
                         responseBuilder.append("*2\r\n");
                         responseBuilder.append("$").append(key.length()).append("\r\n").append(key).append("\r\n");
