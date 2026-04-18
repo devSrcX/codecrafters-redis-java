@@ -175,13 +175,25 @@ public class RedisCommandHandler {
                 var lock = listLocks.computeIfAbsent(key, k -> new Object());
                 
                 synchronized (lock) {
-                    // Wait until timeout or data arrives
+                    long deadline = timeoutMs > 0 ? System.currentTimeMillis() + timeoutMs : 0;
+                    
                     while (cachedList.isEmpty()) {
                         try {
-                            lock.wait(timeoutMs);  // Block this thread until notified or timeout
-                            if (cachedList.isEmpty()) {
-                                // Timeout reached with no data
-                                yield "*-1\r\n";
+                            if (timeoutMs == 0) {
+                                // Infinite wait
+                                lock.wait();
+                            } else {
+                                // Timed wait
+                                long remainingTime = deadline - System.currentTimeMillis();
+                                if (remainingTime <= 0) {
+                                    yield "*-1\r\n";
+                                }
+                                lock.wait(remainingTime);
+                                
+                                // Check if timeout expired
+                                if (System.currentTimeMillis() >= deadline && cachedList.isEmpty()) {
+                                    yield "*-1\r\n";
+                                }
                             }
                         } catch (InterruptedException e) {
                             Thread.currentThread().interrupt();
