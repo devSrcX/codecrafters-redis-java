@@ -165,6 +165,7 @@ public class RedisCommandHandler {
                 while (System.currentTimeMillis() < deadline) {
                     var cachedList = lists.get(key);
                     if (cachedList != null && !cachedList.isEmpty()) {
+                        log.info("inside if block");
                         var value = cachedList.remove(0);
                         log.info("BLPOP removed value: {} from list with key: {}", value, key);
                         
@@ -174,6 +175,7 @@ public class RedisCommandHandler {
                         responseBuilder.append("$").append(value.length()).append("\r\n").append(value).append("\r\n");
                         yield responseBuilder.toString();
                     } else {
+                        log.info("inside else block");
                         yield "*-1\r\n";
                     }
                     
