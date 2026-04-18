@@ -156,41 +156,29 @@ public class RedisCommandHandler {
                 }
             }
             case "BLPOP" -> {
-                var blockTimeout = splitCommand.length > 6 ? splitCommand[6] : "0";
-                if (!blockTimeout.equals("0")) {
-                    log.info("Blocking for {} seconds", blockTimeout);
+                var key = splitCommand[4];
+                var blockTimeoutSeconds = Integer.parseInt(splitCommand[6]);
+                var deadline = System.currentTimeMillis() + (blockTimeoutSeconds * 1000L);
+
+                log.info("Blocking LPOP on key: {} with timeout: {} seconds", key, blockTimeoutSeconds);
+                
+                while (System.currentTimeMillis() < deadline) {
+                    var cachedList = lists.get(key);
+                    if (cachedList != null && !cachedList.isEmpty()) {
+                        var value = cachedList.remove(0);
+                        log.info("BLPOP removed value: {} from list with key: {}", value, key);
+                        yield String.format(RESPONSE_STRING_TEMPLATE, value.length(), value);
+                    }
+                    
                     try {
-                        Thread.sleep(Integer.parseInt(blockTimeout) * 1000L);
+                        Thread.sleep(100);
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                     }
                 }
-
-                var key = splitCommand[4];
-                var cachedList = lists.get(key);
-                if (cachedList == null || cachedList.isEmpty()) {
-                    yield "$-1\r\n";
-                }
-
-                var args = splitCommand.length > 6 ? splitCommand[6] : "1";
-                var countToPop = Integer.parseInt(args);
-                if (countToPop <= 0) {
-                    yield "$-1\r\n";
-                } else if (countToPop == 1) {
-                    var value = cachedList.remove(0);
-                    log.info("Removed value: {} from list with key: {}", value, key);
-                    yield String.format(RESPONSE_STRING_TEMPLATE, value.length(), value);
-                } else {
-                    countToPop = Math.min(countToPop, cachedList.size());
-                    var responseBuilder = new StringBuilder();
-                    responseBuilder.append("*").append(countToPop).append("\r\n");
-                    for (int i = 0; i < countToPop; i++) {
-                        var value = cachedList.remove(0);
-                        log.info("Removed value: {} from list with key: {}", value, key);
-                        responseBuilder.append(String.format(RESPONSE_STRING_TEMPLATE, value.length(), value));
-                    }
-                    yield responseBuilder.toString();
-                }
+                
+                // Timeout reached with no element
+                yield "$-1\r\n";
             }
             default ->
                 null;
