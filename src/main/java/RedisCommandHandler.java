@@ -157,12 +157,14 @@ public class RedisCommandHandler {
             }
             case "BLPOP" -> {
                 var key = splitCommand[4];
+
                 var blockTimeoutSeconds = Integer.parseInt(splitCommand[6]);
                 var deadline = System.currentTimeMillis() + (blockTimeoutSeconds * 1000L);
 
                 log.info("Blocking LPOP on key: {} with timeout: {} seconds", key, blockTimeoutSeconds);
             
                 while (System.currentTimeMillis() < deadline) {
+                    log.info("inside while loop");
                     var cachedList = lists.get(key);
                     if (cachedList != null && !cachedList.isEmpty()) {
                         log.info("inside if block");
@@ -174,16 +176,13 @@ public class RedisCommandHandler {
                         responseBuilder.append("$").append(key.length()).append("\r\n").append(key).append("\r\n");
                         responseBuilder.append("$").append(value.length()).append("\r\n").append(value).append("\r\n");
                         yield responseBuilder.toString();
-                    } else {
-                        log.info("inside else block");
-                        yield "*-1\r\n";
                     }
                     
-                    // try {
-                    //     Thread.sleep(100);
-                    // } catch (InterruptedException e) {
-                    //     Thread.currentThread().interrupt();
-                    // }
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
                 }
                 yield "$-1\r\n";
             }
