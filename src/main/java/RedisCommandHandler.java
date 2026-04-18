@@ -128,6 +128,16 @@ public class RedisCommandHandler {
                 }
                 yield ":" + cachedList.size() + "\r\n";
             }
+            case "LPOP" -> {
+                var key = splitCommand[4];
+                var cachedList = lists.get(key);
+                if (cachedList == null || cachedList.isEmpty()) {
+                    yield "$-1\r\n";
+                }
+                var value = cachedList.remove(0);
+                log.info("Removed value: {} from list with key: {}", value, key);
+                yield String.format(RESPONSE_STRING_TEMPLATE, value.length(), value);
+            }
             default ->
                 null;
         };
