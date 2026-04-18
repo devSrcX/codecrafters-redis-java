@@ -120,6 +120,14 @@ public class RedisCommandHandler {
                 }
                 yield ":" + cachedList.size() + "\r\n";
             }
+            case "LLEN" -> {
+                var key = splitCommand[4];
+                var cachedList = lists.get(key);
+                if (cachedList == null) {
+                    yield ":0\r\n";
+                }
+                yield ":" + cachedList.size() + "\r\n";
+            }
             default ->
                 null;
         };
