@@ -184,7 +184,7 @@ public class RedisCommandHandler {
                         Thread.currentThread().interrupt();
                     }
                 }
-                yield "$-1\r\n";
+                yield "*0\r\n";
             }
             default ->
                 null;
