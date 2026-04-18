@@ -89,6 +89,9 @@ public class RedisCommandHandler {
                 var end = Integer.parseInt(splitCommand[8]);
                 if (start < 0) {
                     start = cachedList.size() + start;
+                    if (start < 0) {
+                        start = 0;
+                    }
                 }
                 if (end < 0) {
                     end = cachedList.size() + end;
