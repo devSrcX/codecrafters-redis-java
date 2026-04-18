@@ -83,7 +83,7 @@ public class RedisCommandHandler {
                 var key = splitCommand[4];
                 var cachedList = lists.get(key);
                 if (cachedList == null) {
-                    yield "0\r\n";
+                    yield "*0\r\n";
                 }
                 var start = Integer.parseInt(splitCommand[6]);
                 var end = Integer.parseInt(splitCommand[8]);
