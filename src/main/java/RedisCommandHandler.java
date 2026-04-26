@@ -1,5 +1,6 @@
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -14,6 +15,8 @@ public class RedisCommandHandler {
     private final Map<String, CachedValue> cache = new ConcurrentHashMap<>();
     private final Map<String, List<String>> lists = new ConcurrentHashMap<>();
     private final Map<String, Object> listLocks = new ConcurrentHashMap<>();
+    private final Map<String, Stream> streams = new ConcurrentHashMap<>();
+    private final Map<String, Object> streamLocks = new ConcurrentHashMap<>();
 
     public String handle(String redisCommandLiteral) {
         var splitedString = redisCommandLiteral.split("\r\n");
@@ -224,7 +227,34 @@ public class RedisCommandHandler {
                 if (lists.containsKey(key)) {
                     yield "+list\r\n";
                 }
+                if (streams.containsKey(key)) {
+                    yield "+stream\r\n";
+                }
                 yield "+none\r\n";
+            }
+            case "XADD" -> {
+                var key = splitCommand[4];
+                var id = splitCommand[6];
+                
+                var stream = streams.computeIfAbsent(key, k -> new Stream());
+                var lock = streamLocks.computeIfAbsent(key, k -> new Object());
+                
+                synchronized (lock) {
+                    // Parse field-value pairs from the command
+                    Map<String, String> fieldValues = new HashMap<>();
+                    for (int i = 8; i < splitCommand.length; i += 2) {
+                        if (i + 1 < splitCommand.length && !splitCommand[i].isEmpty()) {
+                            String field = splitCommand[i];
+                            String value = splitCommand[i + 1];
+                            fieldValues.put(field, value);
+                            log.info("Added field: {} with value: {} to stream: {}", field, value, key);
+                        }
+                    }
+                    
+                    String entryId = stream.addEntry(id, fieldValues);
+                    log.info("Added entry with ID: {} to stream: {}", entryId, key);
+                    yield String.format(RESPONSE_STRING_TEMPLATE, entryId.length(), entryId);
+                }
             }
             default ->
                 null;
