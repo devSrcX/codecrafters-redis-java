@@ -180,10 +180,8 @@ public class RedisCommandHandler {
                     while (cachedList.isEmpty()) {
                         try {
                             if (timeoutMs == 0) {
-                                // Infinite wait
                                 lock.wait();
                             } else {
-                                // Timed wait
                                 long remainingTime = deadline - System.currentTimeMillis();
                                 if (remainingTime <= 0) {
                                     yield "*-1\r\n";
@@ -200,8 +198,6 @@ public class RedisCommandHandler {
                             yield "*-1\r\n";
                         }
                     }
-                    
-                    // Data is available, pop and return
                     if (!cachedList.isEmpty()) {
                         var value = cachedList.remove(0);
                         log.info("BLPOP removed value: {} from list with key: {}", value, key);
@@ -212,8 +208,23 @@ public class RedisCommandHandler {
                         responseBuilder.append("$").append(value.length()).append("\r\n").append(value).append("\r\n");
                         yield responseBuilder.toString();
                     }
+                } 
+                yield "*-1\r\n"; 
+            }case "TYPE" -> {
+                var key = splitCommand[4];
+                log.info("Executing TYPE command for key: {}", key);
+                
+                var cachedValue = cache.get(key);
+                if (cachedValue != null && !cachedValue.isExpired()) {
+                    yield "+string\r\n";
                 }
-                yield "*-1\r\n";
+                if (cachedValue != null && cachedValue.isExpired()) {
+                    cache.remove(key);
+                }
+                if (lists.containsKey(key)) {
+                    yield "+list\r\n";
+                }
+                yield "+none\r\n";
             }
             default ->
                 null;
