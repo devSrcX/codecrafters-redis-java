@@ -1,30 +1,32 @@
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 public class Stream {
+
     private final List<StreamEntry> entries;
     private long lastSequence;
     private long lastTimestamp;
-    
+
     public Stream() {
         this.entries = new ArrayList<>();
         this.lastTimestamp = 0;
         this.lastSequence = 0;
     }
-    
+
     public String addEntry(String id, Map<String, String> fieldValues) {
         if ("*".equals(id)) {
             long currentTimestamp = System.currentTimeMillis();
             long sequence = 0;
-            
+
             if (currentTimestamp == lastTimestamp) {
                 sequence = lastSequence + 1;
             } else {
                 sequence = 0;
                 lastTimestamp = currentTimestamp;
             }
-            
+
             id = currentTimestamp + "-" + sequence;
             lastSequence = sequence;
         } else {
@@ -32,8 +34,10 @@ public class Stream {
             if (parts.length == 2) {
                 long timestamp = Long.parseLong(parts[0]);
                 long sequence = Long.parseLong(parts[1]);
-                
-                if (timestamp > lastTimestamp) {
+
+                if (timestamp == 0 && sequence == 0) {
+                    return "-ERR The ID specified in XADD must be greater than 0-0";
+                } else if (timestamp > lastTimestamp) {
                     lastTimestamp = timestamp;
                     lastSequence = sequence;
                 } else if (timestamp == lastTimestamp && sequence > lastSequence) {
@@ -44,16 +48,16 @@ public class Stream {
                 }
             }
         }
-        
+
         StreamEntry entry = new StreamEntry(id, fieldValues);
         entries.add(entry);
         return id;
     }
-    
+
     public List<StreamEntry> getEntries() {
         return new ArrayList<>(entries);
     }
-    
+
     public StreamEntry getEntry(String id) {
         for (StreamEntry entry : entries) {
             if (entry.getId().equals(id)) {
