@@ -253,7 +253,11 @@ public class RedisCommandHandler {
                     
                     String entryId = stream.addEntry(id, fieldValues);
                     log.info("Added entry with ID: {} to stream: {}", entryId, key);
-                    yield String.format(RESPONSE_STRING_TEMPLATE, entryId.length(), entryId);
+                    if(!entryId.startsWith("-ERR")) {
+                        yield String.format(RESPONSE_STRING_TEMPLATE, entryId.length(), entryId);
+                    } else {
+                        yield entryId + "\r\n";
+                    }
                 }
             }
             default ->
