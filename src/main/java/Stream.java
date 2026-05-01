@@ -39,6 +39,7 @@ public class Stream {
                 } else if (timestamp == lastTimestamp && sequence > lastSequence) {
                     lastSequence = sequence;
                 }
+                
             }
         }
         
