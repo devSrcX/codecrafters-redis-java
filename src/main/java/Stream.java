@@ -42,8 +42,7 @@ public class Stream {
                     lastSequence = sequence;
                 } else if (timestamp == lastTimestamp && sequence > lastSequence) {
                     lastSequence = sequence;
-                } else {
-                    // Reject if timestamp is smaller or (same timestamp and sequence is equal/smaller)
+                } else { 
                     return "-ERR The ID specified in XADD is equal or smaller than the target stream top item";
                 }
             }
