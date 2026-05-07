@@ -20,6 +20,7 @@ public class Stream {
     }
 
     public String addEntry(String id, Map<String, String> fieldValues) {
+        log.info("Adding entry with ID: {} and field values: {}", id, fieldValues);
         if ("*".equals(id)) {
             long currentTimestamp = System.currentTimeMillis();
             long sequence = 0;
