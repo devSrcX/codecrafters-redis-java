@@ -39,6 +39,7 @@ public class Stream {
             log.info("parts[0]: {}", parts[0]);
             log.info("parts[1]: {}", parts[1]);
             if (parts.length == 2) {
+                log.info("inside parts block");
                 long timestamp = Long.parseLong(parts[0]);
                 var sequence = Long.parseLong(parts[1]);
                 log.info("timestamp: {}, sequence: {}", timestamp, sequence);
