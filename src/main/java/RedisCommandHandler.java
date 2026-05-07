@@ -243,9 +243,9 @@ public class RedisCommandHandler {
                     // Parse field-value pairs from the command
                     Map<String, String> fieldValues = new HashMap<>();
                     for (int i = 8; i < splitCommand.length; i += 2) {
-                        if (i + 1 < splitCommand.length && !splitCommand[i].isEmpty()) {
+                        if (i + 2 < splitCommand.length && !splitCommand[i].isEmpty()) {
                             String field = splitCommand[i];
-                            String value = splitCommand[i + 1];
+                            String value = splitCommand[i + 2];
                             fieldValues.put(field, value);
                             log.info("Added field: {} with value: {} to stream: {}", field, value, key);
                         }
