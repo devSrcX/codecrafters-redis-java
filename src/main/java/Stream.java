@@ -36,7 +36,8 @@ public class Stream {
             lastSequence = sequence;
         } else {
             String[] parts = id.split("-");
-            log.info("parts: {}", parts);
+            log.info("parts[0]: {}", parts[0]);
+            log.info("parts[1]: {}", parts[1]);
             if (parts.length == 2) {
                 long timestamp = Long.parseLong(parts[0]);
                 var sequence = Long.parseLong(parts[1]);
