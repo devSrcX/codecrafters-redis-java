@@ -39,6 +39,7 @@ public class Stream {
             if (parts.length == 2) {
                 long timestamp = Long.parseLong(parts[0]);
                 long sequence = Long.parseLong(parts[1]);
+                log.info("timestamp: {}, sequence: {}", timestamp, sequence);
 
                 if (timestamp == 0 && sequence == 0) {
                     return "-ERR The ID specified in XADD must be greater than 0-0";
