@@ -20,7 +20,6 @@ public class Stream {
     }
 
     public String addEntry(String id, Map<String, String> fieldValues) {
-        log.info("Adding entry with ID: {} and field values: {}", id, fieldValues);
         if ("*".equals(id)) {
             long currentTimestamp = System.currentTimeMillis();
             long sequence = 0;
@@ -36,27 +35,35 @@ public class Stream {
             lastSequence = sequence;
         } else {
             String[] parts = id.split("-");
-            log.info("parts[0]: {}", parts[0]);
-            log.info("parts[1]: {}", parts[1]);
             if (parts.length == 2) {
-                log.info("inside parts block");
-                long timestamp = Long.parseLong(parts[0]);
-                Long sequence = parts[1].equals("*") ? 1 : Long.parseLong(parts[1]);
-                log.info("timestamp: {}, sequence: {}", timestamp, sequence);
+                if (!parts[1].isEmpty() && parts[1].equals("*")) {
+                    long timestamp = Long.parseLong(parts[0]);
+                    long sequence = 0;
 
-                if (timestamp == 0 && sequence == 0) {
-                    return "-ERR The ID specified in XADD must be greater than 0-0";
-                } else if (timestamp == 0 && sequence == '*') {
-                    lastTimestamp = timestamp;
-                    lastSequence = 1;
-                    log.info("* Case, lastTimestamp: {}, lastSequence: {}", lastTimestamp, lastSequence);
-                } else if (timestamp > lastTimestamp) {
-                    lastTimestamp = timestamp;
-                    lastSequence = sequence;
-                } else if (timestamp == lastTimestamp && sequence > lastSequence) {
+                    if(timestamp == 0){
+                        sequence = 1;
+                    } else if (timestamp > lastTimestamp) {
+                        lastTimestamp = timestamp;
+                    } else if (timestamp == lastTimestamp) {
+                        sequence = lastSequence + 1;
+                    } 
+
+                    id = timestamp + "-" + sequence;
                     lastSequence = sequence;
                 } else {
-                    return "-ERR The ID specified in XADD is equal or smaller than the target stream top item";
+                    long timestamp = Long.parseLong(parts[0]);
+                    long sequence = Long.parseLong(parts[1]);
+
+                    if (timestamp == 0 && sequence == 0) {
+                        return "-ERR The ID specified in XADD must be greater than 0-0";
+                    } else if (timestamp > lastTimestamp) {
+                        lastTimestamp = timestamp;
+                        lastSequence = sequence;
+                    } else if (timestamp == lastTimestamp && sequence > lastSequence) {
+                        lastSequence = sequence;
+                    } else {
+                        return "-ERR The ID specified in XADD is equal or smaller than the target stream top item";
+                    }
                 }
             }
         }
