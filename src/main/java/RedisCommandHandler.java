@@ -286,9 +286,8 @@ public class RedisCommandHandler {
                             responseBuilder.append(String.format(RESPONSE_STRING_TEMPLATE, fieldValue.getValue().length(), fieldValue.getValue()));
                         }
                     }
-
+                    yield responseBuilder.toString();
                 }
-                yield "";
             }
             default ->
                 null;
