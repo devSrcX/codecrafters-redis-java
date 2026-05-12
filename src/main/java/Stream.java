@@ -2,13 +2,10 @@
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.stream.Collectors;
 
 public class Stream {
 
-    private static final Logger log = LoggerFactory.getLogger(Stream.class);
     private final List<StreamEntry> entries;
     private long lastSequence;
     private long lastTimestamp;
@@ -87,4 +84,20 @@ public class Stream {
         }
         return null;
     }
+
+    public List<StreamEntry> getEntriesInRange(Long startId, Long endId) {
+
+        return entries.stream().filter(entry -> isIdInRange(entry.getId(), startId, endId))
+                .collect(Collectors.toList());
+    }
+
+    private boolean isIdInRange(String id, Long startId, Long endId) {
+        
+        String[] idParts = id.split("-");
+
+        var idTimestamp = Long.parseLong(idParts[0]);
+
+        return idTimestamp >= startId && idTimestamp <= endId;
+    }
+
 }

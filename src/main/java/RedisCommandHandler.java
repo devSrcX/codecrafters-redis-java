@@ -170,16 +170,16 @@ public class RedisCommandHandler {
             case "BLPOP" -> {
                 var key = splitCommand[4];
                 var blockTimeoutSeconds = Double.parseDouble(splitCommand[6]);
-                var timeoutMs = (long)(blockTimeoutSeconds * 1000);
+                var timeoutMs = (long) (blockTimeoutSeconds * 1000);
 
                 log.info("Blocking LPOP on key: {} with timeout: {} seconds", key, blockTimeoutSeconds);
-                
+
                 var cachedList = lists.computeIfAbsent(key, k -> new ArrayList<>());
                 var lock = listLocks.computeIfAbsent(key, k -> new Object());
-                
+
                 synchronized (lock) {
                     long deadline = timeoutMs > 0 ? System.currentTimeMillis() + timeoutMs : 0;
-                    
+
                     while (cachedList.isEmpty()) {
                         try {
                             if (timeoutMs == 0) {
@@ -190,7 +190,7 @@ public class RedisCommandHandler {
                                     yield "*-1\r\n";
                                 }
                                 lock.wait(remainingTime);
-                                
+
                                 // Check if timeout expired
                                 if (System.currentTimeMillis() >= deadline && cachedList.isEmpty()) {
                                     yield "*-1\r\n";
@@ -204,19 +204,20 @@ public class RedisCommandHandler {
                     if (!cachedList.isEmpty()) {
                         var value = cachedList.remove(0);
                         log.info("BLPOP removed value: {} from list with key: {}", value, key);
-                        
+
                         var responseBuilder = new StringBuilder();
                         responseBuilder.append("*2\r\n");
                         responseBuilder.append("$").append(key.length()).append("\r\n").append(key).append("\r\n");
                         responseBuilder.append("$").append(value.length()).append("\r\n").append(value).append("\r\n");
                         yield responseBuilder.toString();
                     }
-                } 
-                yield "*-1\r\n"; 
-            }case "TYPE" -> {
+                }
+                yield "*-1\r\n";
+            }
+            case "TYPE" -> {
                 var key = splitCommand[4];
                 log.info("Executing TYPE command for key: {}", key);
-                
+
                 var cachedValue = cache.get(key);
                 if (cachedValue != null && !cachedValue.isExpired()) {
                     yield "+string\r\n";
@@ -235,10 +236,10 @@ public class RedisCommandHandler {
             case "XADD" -> {
                 var key = splitCommand[4];
                 var id = splitCommand[6];
-                
+
                 var stream = streams.computeIfAbsent(key, k -> new Stream());
                 var lock = streamLocks.computeIfAbsent(key, k -> new Object());
-                
+
                 synchronized (lock) {
                     // Parse field-value pairs from the command
                     Map<String, String> fieldValues = new HashMap<>();
@@ -250,15 +251,44 @@ public class RedisCommandHandler {
                             log.info("Added field: {} with value: {} to stream: {}", field, value, key);
                         }
                     }
-                    
+
                     String entryId = stream.addEntry(id, fieldValues);
                     log.info("Added entry with ID: {} to stream: {}", entryId, key);
-                    if(!entryId.startsWith("-ERR")) {
+                    if (!entryId.startsWith("-ERR")) {
                         yield String.format(RESPONSE_STRING_TEMPLATE, entryId.length(), entryId);
                     } else {
                         yield entryId + "\r\n";
                     }
                 }
+            }
+            case "XRANGE" -> {
+                var key = splitCommand[4];
+                var startId = Long.parseLong(splitCommand[6]);
+                var endId = Long.parseLong(splitCommand[8]);
+
+                var cachedstream = streams.get(key);
+
+                if (cachedstream == null) {
+                    yield "*0\r\n";
+                } else {
+                    var entries = cachedstream.getEntriesInRange(startId, endId);
+
+                    var responseBuilder = new StringBuilder();
+                    responseBuilder.append("*").append(entries.size()).append("\r\n");
+                    for (StreamEntry entry : entries) {
+                        responseBuilder.append("*2\r\n");
+                        responseBuilder.append("$").append(entry.getId().length()).append("\r\n").append(entry.getId()).append("\r\n");
+
+                        var fieldValues = entry.getFieldValues();
+                        responseBuilder.append("*").append(fieldValues.size() * 2).append("\r\n");
+                        for (Map.Entry<String, String> fieldValue : fieldValues.entrySet()) {
+                            responseBuilder.append(String.format(RESPONSE_STRING_TEMPLATE, fieldValue.getKey().length(), fieldValue.getKey()));
+                            responseBuilder.append(String.format(RESPONSE_STRING_TEMPLATE, fieldValue.getValue().length(), fieldValue.getValue()));
+                        }
+                    }
+
+                }
+                yield "";
             }
             default ->
                 null;
