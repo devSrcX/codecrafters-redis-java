@@ -85,19 +85,19 @@ public class Stream {
         return null;
     }
 
-    public List<StreamEntry> getEntriesInRange(Long startId, Long endId) {
+    public List<StreamEntry> getEntriesInRange(String startId, String endId) {
 
         return entries.stream().filter(entry -> isIdInRange(entry.getId(), startId, endId))
                 .collect(Collectors.toList());
     }
 
-    private boolean isIdInRange(String id, Long startId, Long endId) {
-        
-        String[] idParts = id.split("-");
+    private boolean isIdInRange(String id, String startId, String endId) {
 
-        var idTimestamp = Long.parseLong(idParts[0]);
+        var idTimestamp = Long.parseLong(id.split("-")[0]);
+        var startIdTimestamp = Long.parseLong(startId.split("-")[0]);
+        var endIdTimestamp = Long.parseLong(endId.split("-")[0]);
 
-        return idTimestamp >= startId && idTimestamp <= endId;
+        return idTimestamp >= startIdTimestamp && idTimestamp <= endIdTimestamp;
     }
 
 }

@@ -263,8 +263,8 @@ public class RedisCommandHandler {
             }
             case "XRANGE" -> {
                 var key = splitCommand[4];
-                var startId = Long.parseLong(splitCommand[6]);
-                var endId = Long.parseLong(splitCommand[8]);
+                var startId = splitCommand[6];
+                var endId = splitCommand[8];
 
                 var cachedstream = streams.get(key);
 
