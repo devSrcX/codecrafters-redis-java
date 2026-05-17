@@ -93,17 +93,28 @@ public class Stream {
 
     private boolean isIdInRange(String id, String startId, String endId) {
 
-        var idTimestamp = Long.parseLong(id.split("-")[0]);
-        var idSequenceId = Long.parseLong(id.split("-")[1]);
+        if (startId.equals("-")) {
+            var idTimestamp = Long.parseLong(id.split("-")[0]);
+            var idSequenceId = Long.parseLong(id.split("-")[1]);
 
-        var startIdTimestamp = Long.parseLong(startId.split("-")[0]);
-        var startIdSequenceId = Long.parseLong(startId.split("-")[1]);
+            var endIdTimestamp = Long.parseLong(endId.split("-")[0]);
+            var endIdSequenceId = Long.parseLong(endId.split("-")[1]);
 
-        var endIdTimestamp = Long.parseLong(endId.split("-")[0]);
-        var endIdSequenceId = Long.parseLong(endId.split("-")[1]);
+            return (idTimestamp <= endIdTimestamp)
+                    && (idSequenceId <= endIdSequenceId);
+        } else {
+            var idTimestamp = Long.parseLong(id.split("-")[0]);
+            var idSequenceId = Long.parseLong(id.split("-")[1]);
 
-        return (idTimestamp >= startIdTimestamp && idTimestamp <= endIdTimestamp)
-                && (idSequenceId >= startIdSequenceId && idSequenceId <= endIdSequenceId);
+            var startIdTimestamp = Long.parseLong(startId.split("-")[0]);
+            var startIdSequenceId = Long.parseLong(startId.split("-")[1]);
+
+            var endIdTimestamp = Long.parseLong(endId.split("-")[0]);
+            var endIdSequenceId = Long.parseLong(endId.split("-")[1]);
+
+            return (idTimestamp >= startIdTimestamp && idTimestamp <= endIdTimestamp)
+                    && (idSequenceId >= startIdSequenceId && idSequenceId <= endIdSequenceId);
+        }
     }
 
 }
