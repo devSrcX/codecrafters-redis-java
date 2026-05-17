@@ -93,7 +93,16 @@ public class Stream {
 
     private boolean isIdInRange(String id, String startId, String endId) {
 
-        if (startId.equals("-")) {
+        if (endId.equals("+")) {
+            var idTimestamp = Long.parseLong(id.split("-")[0]);
+            var idSequenceId = Long.parseLong(id.split("-")[1]);
+
+            var startIdTimestamp = Long.parseLong(startId.split("-")[0]);
+            var startIdSequenceId = Long.parseLong(startId.split("-")[1]);
+
+            return (idTimestamp >= startIdTimestamp)
+                    && (idSequenceId >= startIdSequenceId);
+        } else if (startId.equals("-")) {
             var idTimestamp = Long.parseLong(id.split("-")[0]);
             var idSequenceId = Long.parseLong(id.split("-")[1]);
 
